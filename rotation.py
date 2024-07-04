@@ -2,6 +2,7 @@ import math
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from numpy.typing import ArrayLike
+import matplotlib.pyplot as plt
 
 def get_indexes(face_landmarks):
     """
@@ -73,7 +74,6 @@ def get_plotting_indexes():
     plot_indexes['full_contour'] = PLOT_FULL_CONTOUR
     # Return results
     return plot_indexes
-
 
 def rotate_point(origin: ArrayLike, point: ArrayLike, angle: float):
     """
@@ -163,3 +163,129 @@ def rotate_shape(landmarks: ArrayLike):
 
     # Return results
     return rotated_shape 
+
+
+
+##### Auxillary function for plotting 2 faces 
+def plot_landmarks2(landmark_list,
+                   landmark_list2,
+                   connections,
+                   color,
+                   linewidth,
+                   text1 , text2):
+  """Plot the landmarks and the connections in matplotlib 2d.
+
+  Args:
+    landmark_list: A normalized landmark list proto message to be plotted.
+    connections: A list of landmark index tuples that specifies how landmarks to
+      be connected.
+    landmark_drawing_spec: A DrawingSpec object that specifies the landmarks'
+      drawing settings such as color and line thickness.
+    connection_drawing_spec: A DrawingSpec object that specifies the
+      connections' drawing settings such as color and line thickness.
+    elevation: The elevation from which to view the plot.
+    azimuth: the azimuth angle to rotate the plot.
+
+  Raises:
+    ValueError: If any connection contains an invalid landmark index.
+  """
+
+  fig,ax = plt.subplots(ncols = 2 , nrows = 1 , figsize = (12,6))
+  #plt.figure(figsize=(8, 8))
+  #ax = plt.axes()
+  plotted_landmarks = {}
+  plotted_landmarks2 = {}
+  for idx, landmark in enumerate(landmark_list):
+    plotted_landmarks[idx] = (landmark[0], landmark[1])
+  for idx, landmark in enumerate(landmark_list2):
+    plotted_landmarks2[idx] = (landmark[0], landmark[1])
+  if connections:
+    num_landmarks = len(landmark_list)
+    # Draws the connections if the start and end landmarks are both visible.
+    for connection in connections:
+      start_idx = connection[0]
+      end_idx = connection[1]
+      if not (0 <= start_idx < num_landmarks and 0 <= end_idx < num_landmarks):
+        raise ValueError(f'Landmark index is out of range. Invalid connection '
+                         f'from landmark #{start_idx} to landmark #{end_idx}.')
+      if start_idx in plotted_landmarks and end_idx in plotted_landmarks:
+        landmark_pair = [
+            plotted_landmarks[start_idx], plotted_landmarks[end_idx]
+        ]
+        landmark_pair2 = [
+            plotted_landmarks2[start_idx], plotted_landmarks2[end_idx]
+        ]
+        ax[0].plot(
+            [landmark_pair[0][0], landmark_pair[1][0]],
+            [landmark_pair[0][1], landmark_pair[1][1]],
+            color = color,
+            linewidth=linewidth)
+        ax[1].plot(
+            [landmark_pair2[0][0], landmark_pair2[1][0]],
+            [landmark_pair2[0][1], landmark_pair2[1][1]],
+            color = color,
+            linewidth=linewidth)
+        
+  ax[0].set_title(text1)
+  ax[0].invert_yaxis()
+  ax[1].set_title(text2)
+  ax[1].invert_yaxis()
+
+
+  plt.show()
+
+
+
+### Auxillary function for plotting 1 face
+def plot_landmarks(landmark_list,
+                   connections,
+                   color,
+                   linewidth,
+                   text1):
+  """Plot the landmarks and the connections in matplotlib 2d.
+
+  Args:
+    landmark_list: A normalized landmark list proto message to be plotted.
+    connections: A list of landmark index tuples that specifies how landmarks to
+      be connected.
+    landmark_drawing_spec: A DrawingSpec object that specifies the landmarks'
+      drawing settings such as color and line thickness.
+    connection_drawing_spec: A DrawingSpec object that specifies the
+      connections' drawing settings such as color and line thickness.
+    elevation: The elevation from which to view the plot.
+    azimuth: the azimuth angle to rotate the plot.
+
+  Raises:
+    ValueError: If any connection contains an invalid landmark index.
+  """
+
+  fig,ax = plt.subplots(ncols = 1 , nrows = 1 , figsize = (8,8))
+  #plt.figure(figsize=(8, 8))
+  #ax = plt.axes()
+  plotted_landmarks = {}
+  plotted_landmarks2 = {}
+  for idx, landmark in enumerate(landmark_list):
+    plotted_landmarks[idx] = (landmark[0], landmark[1])
+  if connections:
+    num_landmarks = len(landmark_list)
+    # Draws the connections if the start and end landmarks are both visible.
+    for connection in connections:
+      start_idx = connection[0]
+      end_idx = connection[1]
+      if not (0 <= start_idx < num_landmarks and 0 <= end_idx < num_landmarks):
+        raise ValueError(f'Landmark index is out of range. Invalid connection '
+                         f'from landmark #{start_idx} to landmark #{end_idx}.')
+      if start_idx in plotted_landmarks and end_idx in plotted_landmarks:
+        landmark_pair = [
+            plotted_landmarks[start_idx], plotted_landmarks[end_idx]
+        ]
+        ax.plot(
+            [landmark_pair[0][0], landmark_pair[1][0]],
+            [landmark_pair[0][1], landmark_pair[1][1]],
+            color = color,
+            linewidth=linewidth)
+        
+  ax.set_title(text1)
+  ax.invert_yaxis()
+
+  plt.show()
