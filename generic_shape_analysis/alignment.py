@@ -59,3 +59,28 @@ def procrustes(shape, ref_shape):
     disparity = np.sum(np.square(mtx1 - mtx2))
 
     return mtx2
+
+
+def correspondence_search(shape, ref_shape):
+    """Align curve to base_curve to minimize the L² distance.
+
+    Returns
+    -------
+    aligned_curve : discrete curve
+    """
+    num_points = len(shape)
+    distances = np.zeros(num_points)
+    for shift in range(num_points):
+        reparametrized = [shape[(i + shift) % num_points] for i in range(num_points)]
+        aligned = procrustes(reparametrized, ref_shape)
+        distances[shift] = PRESHAPE_SPACE.embedding_space.metric.norm(
+            gs.array(aligned) - gs.array(base_curve)
+        )
+    shift_min = gs.argmin(distances)
+    reparametrized_min = [
+        curve[(i + shift_min) % nb_sampling] for i in range(nb_sampling)
+    ]
+    aligned_curve = PRESHAPE_SPACE.fiber_bundle.align(
+        point=gs.array(reparametrized_min), base_point=base_curve
+    )
+    return aligned_curve
