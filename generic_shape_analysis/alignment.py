@@ -62,25 +62,74 @@ def procrustes(shape, ref_shape):
 
 
 def correspondence_search(shape, ref_shape):
-    """Align curve to base_curve to minimize the L² distance.
+    """Perform an exhaustive search of all points in a shape to find the best Procrustes alignment to the reference shape.
 
     Returns
     -------
-    aligned_curve : discrete curve
+    aligned_shape : array_like
+        The shape scaled, rotated and point-reordered to the best correspondence to the reference shape which minimizes the L2 distances between the two shapes.
     """
     num_points = len(shape)
     distances = np.zeros(num_points)
     for shift in range(num_points):
         reparametrized = [shape[(i + shift) % num_points] for i in range(num_points)]
         aligned = procrustes(reparametrized, ref_shape)
-        distances[shift] = PRESHAPE_SPACE.embedding_space.metric.norm(
-            gs.array(aligned) - gs.array(base_curve)
-        )
-    shift_min = gs.argmin(distances)
+        distances[shift] =  np.sqrt(np.sum(np.square(aligned - ref_shape)))
+    shift_min = np.argmin(distances)
     reparametrized_min = [
-        curve[(i + shift_min) % nb_sampling] for i in range(nb_sampling)
+        shape[(i + shift_min) % num_points] for i in range(num_points)
     ]
-    aligned_curve = PRESHAPE_SPACE.fiber_bundle.align(
-        point=gs.array(reparametrized_min), base_point=base_curve
-    )
-    return aligned_curve
+    aligned_shape = procrustes(reparametrized_min, ref_shape)
+
+    return aligned_shape , distances
+
+def generalized_procrustes(shape_list , corr_search = True , tol = 1e-3):
+    ### To check: is the mean calculation done properly?
+    """Perform the generalized Procrustes analysis on a list of shapes.
+     The function uses the first shape in the dataset as the mean shape, aligns all other shapes to it. Then it re-calculates the mean shape based on all aligned shapes and aligns the new mean
+     to the old mean shape. If the new mean shape does not converge to the old mean shape, the process is repeated until convergence.
+     ** Convergence is defined as the L2 distance between the new mean shape and the old mean shape being smaller than a given tolerance.
+    Parameters
+    ----------
+    shape_list : list of array_like elements
+        List of shapes to be aligned.
+    corr_search : bool, optional
+        If True, the function will perform an exhaustive search of all points in a shape to find the best Procrustes alignment to the mean shape.
+    tol : float, optional
+        The tolerance for convergence. The function will stop the iterative process when the L2 distance between the new mean shape and the old mean shape is smaller than this value.
+
+    Returns
+    -------
+    aligned_shapes : list of array_like elements
+        List of shapes aligned to the mean shape.
+    """   
+    mean_shape = shape_list[0]
+    aligned_shapes = []
+    aligned_shapes.append(mean_shape)
+    for shape in shape_list[1:]:
+        if corr_search:
+            aligned_shape = correspondence_search(shape, mean_shape)
+        else:
+            aligned_shape = procrustes(shape, mean_shape)
+        aligned_shapes.append(aligned_shape)
+    mean_shape_new = np.mean(aligned_shapes, axis=0)
+    if corr_search:
+        mean_shape_new = correspondence_search(mean_shape_new, mean_shape)
+    else:
+        mean_shape_new = procrustes(mean_shape_new, mean_shape) 
+    while np.sqrt(np.sum(np.square(mean_shape_new - mean_shape))) > tol:
+        mean_shape = mean_shape_new
+        aligned_shapes = []
+        aligned_shapes.append(mean_shape)
+        for shape in shape_list[1:]:
+            if corr_search:
+                aligned_shape = correspondence_search(shape, mean_shape)
+            else:
+                aligned_shape = procrustes(shape, mean_shape)
+            aligned_shapes.append(aligned_shape)
+        mean_shape_new = np.mean(aligned_shapes, axis=0)
+        if corr_search:
+            mean_shape_new = correspondence_search(mean_shape_new, mean_shape)
+        else:
+            mean_shape_new = procrustes(mean_shape_new, mean_shape)
+    return aligned_shapes 
