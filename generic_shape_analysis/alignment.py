@@ -58,7 +58,7 @@ def procrustes(shape, ref_shape):
     # measure the dissimilarity between the two datasets
     disparity = np.sum(np.square(mtx1 - mtx2))
 
-    return mtx2
+    return (mtx2, mtx1)
 
 
 def correspondence_search(shape, ref_shape):
@@ -73,15 +73,15 @@ def correspondence_search(shape, ref_shape):
     distances = np.zeros(num_points)
     for shift in range(num_points):
         reparametrized = [shape[(i + shift) % num_points] for i in range(num_points)]
-        aligned = procrustes(reparametrized, ref_shape)
-        distances[shift] =  np.sqrt(np.sum(np.square(aligned - ref_shape)))
+        aligned, std_ref_shape = procrustes(reparametrized, ref_shape)
+        distances[shift] =  np.sqrt(np.sum(np.square(aligned - std_ref_shape)))
     shift_min = np.argmin(distances)
     reparametrized_min = [
         shape[(i + shift_min) % num_points] for i in range(num_points)
     ]
-    aligned_shape = procrustes(reparametrized_min, ref_shape)
+    aligned_shape,_ = procrustes(reparametrized_min, ref_shape)
 
-    return aligned_shape , distances
+    return (aligned_shape,)
 
 def generalized_procrustes(shape_list , corr_search = True , tol = 1e-3):
     ### To check: is the mean calculation done properly?
@@ -103,33 +103,33 @@ def generalized_procrustes(shape_list , corr_search = True , tol = 1e-3):
     aligned_shapes : list of array_like elements
         List of shapes aligned to the mean shape.
     """   
-    mean_shape = shape_list[0]
+    mean_shape = procrustes(shape_list[0],shape_list[0])[1]
     aligned_shapes = []
     aligned_shapes.append(mean_shape)
     for shape in shape_list[1:]:
         if corr_search:
-            aligned_shape = correspondence_search(shape, mean_shape)
+            aligned_shape = correspondence_search(shape, mean_shape)[0]
         else:
-            aligned_shape = procrustes(shape, mean_shape)
+            aligned_shape = procrustes(shape, mean_shape)[0]
         aligned_shapes.append(aligned_shape)
     mean_shape_new = np.mean(aligned_shapes, axis=0)
     if corr_search:
-        mean_shape_new = correspondence_search(mean_shape_new, mean_shape)
+        mean_shape_new = correspondence_search(mean_shape_new, mean_shape)[0]
     else:
-        mean_shape_new = procrustes(mean_shape_new, mean_shape) 
+        mean_shape_new = procrustes(mean_shape_new, mean_shape)[0] 
     while np.sqrt(np.sum(np.square(mean_shape_new - mean_shape))) > tol:
         mean_shape = mean_shape_new
         aligned_shapes = []
         aligned_shapes.append(mean_shape)
         for shape in shape_list[1:]:
             if corr_search:
-                aligned_shape = correspondence_search(shape, mean_shape)
+                aligned_shape = correspondence_search(shape, mean_shape)[0]
             else:
-                aligned_shape = procrustes(shape, mean_shape)
+                aligned_shape = procrustes(shape, mean_shape)[0]
             aligned_shapes.append(aligned_shape)
         mean_shape_new = np.mean(aligned_shapes, axis=0)
         if corr_search:
-            mean_shape_new = correspondence_search(mean_shape_new, mean_shape)
+            mean_shape_new = correspondence_search(mean_shape_new, mean_shape)[0]
         else:
-            mean_shape_new = procrustes(mean_shape_new, mean_shape)
-    return aligned_shapes 
+            mean_shape_new = procrustes(mean_shape_new, mean_shape)[0]
+    return (aligned_shapes,)

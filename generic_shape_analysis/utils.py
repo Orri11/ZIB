@@ -1,7 +1,7 @@
 import geomstats.backend as gs
 import numpy as np
 
-def apply_func_to_list(input_list, func):
+def apply_func_to_list(input_list, func, output_index = 0):
     """Apply the input function func to the input list input_list.
 
     This function goes through the list and applies the function to every element in the list.
@@ -12,6 +12,8 @@ def apply_func_to_list(input_list, func):
         Input list.
     func : callable
         Function to be applied to the values of the list, i.e. the shapes.
+    output_index = 0) : int 
+        Index of the output elements to be used. Default is 0, as functions should return the transformed shape array as first element of the output.
 
     Returns
     -------
@@ -19,7 +21,7 @@ def apply_func_to_list(input_list, func):
     """
     output_list = []
     for i , shape in enumerate(input_list):
-        output_list.append(func(shape))
+        output_list.append(func(shape)[output_index])
         output_list[i] = np.array(output_list[i])
     return output_list
 
@@ -30,7 +32,8 @@ def interpolate(curve, nb_points, tol=1e-10):
 
     Returns
     -------
-    interpolation : discrete curve with nb_points points
+    interpolation : array_like
+        Shape with nb_points points
     """
     old_length = curve.shape[0]
     interpolation = gs.zeros((nb_points, 2))
@@ -52,4 +55,4 @@ def interpolate(curve, nb_points, tol=1e-10):
             if np.sqrt(np.sum(np.square(interpolation[i + 1] - interpolation[i]), axis=0)) < tol:
                 interpolation[i + 1] = (interpolation[i] + interpolation[i + 2]) / 2
 
-    return interpolation
+    return (interpolation,)
