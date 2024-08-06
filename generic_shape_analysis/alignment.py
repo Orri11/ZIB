@@ -105,8 +105,7 @@ def generalized_procrustes(shape_list , corr_search = True , tol = 1e-3):
     """   
     mean_shape = procrustes(shape_list[0],shape_list[0])[1]
     aligned_shapes = []
-    aligned_shapes.append(mean_shape)
-    for shape in shape_list[1:]:
+    for shape in shape_list:
         if corr_search:
             aligned_shape = correspondence_search(shape, mean_shape)[0]
         else:
@@ -120,8 +119,7 @@ def generalized_procrustes(shape_list , corr_search = True , tol = 1e-3):
     while np.sqrt(np.sum(np.square(mean_shape_new - mean_shape))) > tol:
         mean_shape = mean_shape_new
         aligned_shapes = []
-        aligned_shapes.append(mean_shape)
-        for shape in shape_list[1:]:
+        for shape in shape_list:
             if corr_search:
                 aligned_shape = correspondence_search(shape, mean_shape)[0]
             else:
@@ -132,4 +130,4 @@ def generalized_procrustes(shape_list , corr_search = True , tol = 1e-3):
             mean_shape_new = correspondence_search(mean_shape_new, mean_shape)[0]
         else:
             mean_shape_new = procrustes(mean_shape_new, mean_shape)[0]
-    return (aligned_shapes,)
+    return (aligned_shapes, mean_shape_new)
